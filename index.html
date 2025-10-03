@@ -78,7 +78,7 @@
         </div>
 
         <!-- SECTION: Historical Data (Descriptive BI) -->
-        <div class="bg-white p-6 rounded-xl shadow-lg">
+        <div class="bg-white p-6 rounded-xl shadow-lg mb-6">
             <h2 class="text-xl font-semibold text-gray-800 mb-4">Historical Performance</h2>
             <div class="overflow-x-auto hide-scrollbar">
                 <table class="min-w-full divide-y divide-gray-200">
@@ -100,6 +100,39 @@
             </div>
             <div id="no-data-message" class="text-center p-8 text-gray-500 hidden">No data entries yet. Start by adding an entry above!</div>
         </div>
+
+        <!-- SECTION: Data Backup & Management -->
+        <div class="bg-gray-100 p-4 rounded-xl shadow-inner flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0 sm:space-x-4">
+            <p class="text-sm text-gray-700">Manage your data backup and recovery using JSON files.</p>
+            <div class="flex space-x-2">
+                <!-- Export Button -->
+                <button onclick="exportData()" class="p-2 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-700 transition duration-150 text-sm flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Export Data
+                </button>
+                
+                <!-- Clear Data Button (New addition for troubleshooting) -->
+                <button onclick="clearLocalStorageAndReload()" class="p-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition duration-150 text-sm flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2 2m2-2l2-2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Clear Data
+                </button>
+
+                <!-- Import Button (Hidden File Input) -->
+                <input type="file" id="import-file" accept=".json" class="hidden" onchange="handleImport(event)">
+                <button onclick="document.getElementById('import-file').click()" class="p-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition duration-150 text-sm flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                    Import Data
+                </button>
+            </div>
+        </div>
+
+
     </div>
 
     <script>
@@ -123,45 +156,57 @@
         const inputCash = document.getElementById('cash');
 
         let metricsData = [];
+        
+        // A simple function to create a UUID (Universally Unique Identifier)
+        const generateUUID = () => {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        };
 
-        // --- Utility Functions: Data Storage and Persistence ---
+
+        // --- Utility Functions: Data Storage and Persistence (REINFORCED) ---
 
         /**
-         * Loads data from localStorage, or initializes with sample data if empty.
+         * Loads data from localStorage, or initializes with sample data if empty/corrupt.
          */
         const loadData = () => {
             try {
                 const storedData = localStorage.getItem(STORAGE_KEY);
                 if (storedData) {
-                    // Critical: Try to parse the stored data. If it fails, we treat it as an empty set.
                     const parsedData = JSON.parse(storedData);
+                    // Critical check: Ensure parsed data is an array before assigning
                     metricsData = Array.isArray(parsedData) ? parsedData : [];
-
-                    // Ensure metricsData is sorted by month/period for accurate trend calculations
-                    metricsData.sort((a, b) => a.month.localeCompare(b.month));
-                }
-
-                // If no data loaded (or only corrupted data found), inject sample data
-                if (metricsData.length === 0) {
-                     metricsData = [
-                        { id: crypto.randomUUID(), month: "2024-06", mrr: 1500, new_customers: 20, churn: 2, opex: 8000, cash: 500000 },
-                        { id: crypto.randomUUID(), month: "2024-07", mrr: 3000, new_customers: 35, churn: 4, opex: 9500, cash: 490500 },
-                        { id: crypto.randomUUID(), month: "2024-08", mrr: 7500, new_customers: 70, churn: 8, opex: 10000, cash: 480500 },
-                        { id: crypto.randomUUID(), month: "2024-09", mrr: 12000, new_customers: 90, churn: 10, opex: 10500, cash: 470000 },
-                        { id: crypto.randomUUID(), month: "2024-10", mrr: 15500, new_customers: 60, churn: 15, opex: 12000, cash: 458000 },
-                        { id: crypto.randomUUID(), month: "2024-11", mrr: 20000, new_customers: 75, churn: 18, opex: 13500, cash: 444500 },
-                        { id: crypto.randomUUID(), month: "2024-12", mrr: 25000, new_customers: 80, churn: 20, opex: 14000, cash: 430500 },
-                    ];
-                    // IMPORTANT: Save the default data immediately to ensure storage works
-                    saveData();
+                    
+                    if (metricsData.length > 0) {
+                        console.log(`[STORAGE] Data loaded successfully from localStorage: ${metricsData.length} entries.`);
+                    }
                 }
             } catch (e) {
-                // If JSON.parse fails, it indicates corrupt storage, so we clear and load defaults.
-                console.error("Error loading data from localStorage, resetting data:", e);
+                console.error("[STORAGE ERROR] Error loading or parsing data from localStorage. Data may be corrupt, removing it now. Check browser settings (Private Mode).", e);
+                // Clear potentially corrupt key
                 localStorage.removeItem(STORAGE_KEY);
-                // Re-run loadData to ensure defaults are applied and saved cleanly
-                loadData();
+                metricsData = [];
             }
+            
+            // If data is empty after loading/clearing, inject sample data
+            if (metricsData.length === 0) {
+                 metricsData = [
+                    { id: generateUUID(), month: "2024-06", mrr: 1500, new_customers: 20, churn: 2, opex: 8000, cash: 500000 },
+                    { id: generateUUID(), month: "2024-07", mrr: 3000, new_customers: 35, churn: 4, opex: 9500, cash: 490500 },
+                    { id: generateUUID(), month: "2024-08", mrr: 7500, new_customers: 70, churn: 8, opex: 10000, cash: 480500 },
+                    { id: generateUUID(), month: "2024-09", mrr: 12000, new_customers: 90, churn: 10, opex: 10500, cash: 470000 },
+                    { id: generateUUID(), month: "2024-10", mrr: 15500, new_customers: 60, churn: 15, opex: 12000, cash: 458000 },
+                    { id: generateUUID(), month: "2024-11", mrr: 20000, new_customers: 75, churn: 18, opex: 13500, cash: 444500 },
+                    { id: generateUUID(), month: "2024-12", mrr: 25000, new_customers: 80, churn: 20, opex: 14000, cash: 430500 },
+                ];
+                // Save the default data immediately, which will trigger the console log if it fails.
+                saveData();
+            }
+
+            // Always ensure data is sorted for calculations (by month string)
+            metricsData.sort((a, b) => a.month.localeCompare(b.month));
         };
 
         /**
@@ -169,14 +214,100 @@
          */
         const saveData = () => {
             try {
-                // Safety check: Ensure the object is a clean string before saving
+                // Safety check 1: Ensure we are only saving if metricsData is an array
+                if (!Array.isArray(metricsData)) {
+                    console.error("[STORAGE FAILED] metricsData is not an array. Cannot save.");
+                    return;
+                }
+                
+                // Safety check 2: Try-catch block for JSON stringify and setItem
                 const dataString = JSON.stringify(metricsData);
                 localStorage.setItem(STORAGE_KEY, dataString);
-                console.log("Data successfully saved to localStorage.");
+                console.log(`[STORAGE] Data successfully saved to localStorage. ${metricsData.length} entries.`);
             } catch (e) {
-                console.error("CRITICAL: Error saving data to localStorage:", e);
-                // Inform the user or log a severe issue
+                console.error("[STORAGE CRITICAL] Error saving data. Your browser may be blocking storage access (e.g., Private Mode). Data is NOT persistent.", e);
+                alertMessage("CRITICAL: Data could not be saved to browser storage. Use the 'Export Data' button to prevent loss!", 'text-red-700');
             }
+        };
+        
+        /**
+         * Clears all data from localStorage and reloads the page to inject sample data.
+         */
+        window.clearLocalStorageAndReload = () => {
+            // Replaces window.confirm
+            const modalMessage = "WARNING: This will permanently delete ALL saved data entries and reload the dashboard with sample data. Are you absolutely sure you want to continue?";
+            
+            // Simple in-page modal/confirmation replacement
+            if (window.confirm(modalMessage)) { // Using native confirm as a quick-fix proxy for the assignment
+                localStorage.removeItem(STORAGE_KEY);
+                metricsData = [];
+                // Clear the form state too
+                resetForm();
+                // Reload data to inject samples and re-render
+                loadData();
+                renderDashboard();
+                alertMessage("All local data cleared. Sample data reloaded.", 'text-red-600');
+            }
+        };
+
+
+        // --- Utility Functions: Backup & Import ---
+
+        /**
+         * Exports the current data to a JSON file.
+         */
+        window.exportData = () => {
+            const dataString = JSON.stringify(metricsData, null, 2); // Pretty-printed JSON
+            const blob = new Blob([dataString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `startup_metrics_backup_${new Date().toISOString().slice(0, 10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            alertMessage("Data exported successfully! Save the file.", 'text-blue-600');
+        };
+
+        /**
+         * Handles importing data from a file uploaded by the user.
+         */
+        window.handleImport = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    
+                    // Validate imported structure: must be an array, and entries must have basic props
+                    if (Array.isArray(importedData) && importedData.every(item => item.month && typeof item.mrr === 'number')) {
+                        
+                        // Overwrite current data and ensure all entries have a unique ID
+                        metricsData = importedData.map(entry => ({ 
+                            ...entry, 
+                            id: entry.id || generateUUID() 
+                        }));
+                        
+                        // Sort and save
+                        metricsData.sort((a, b) => a.month.localeCompare(b.month));
+                        saveData();
+                        renderDashboard();
+                        alertMessage('Data successfully imported and saved! ' + metricsData.length + ' entries loaded.', 'text-green-600');
+                    } else {
+                        alertMessage('Import failed: File format is incorrect. Please ensure it contains an array of metric objects.', 'text-red-600');
+                    }
+                } catch (err) {
+                    alertMessage('Import failed: Could not parse JSON file. ' + err.message, 'text-red-600');
+                }
+            };
+            reader.readAsText(file);
+            
+            // Clear file input so the same file can be uploaded again if needed
+            event.target.value = '';
         };
 
         // --- Utility Functions: Formatting and Visualization ---
@@ -219,6 +350,18 @@
             if (change < -0.001) return { arrow: '▼', color: 'text-red-600' };
             return { arrow: '→', color: 'text-gray-500' }; // Neutral
         };
+        
+        /**
+         * Displays a temporary message in the form message area.
+         */
+        const alertMessage = (message, colorClass = 'text-red-500') => {
+            formMessage.textContent = message;
+            formMessage.className = `mt-3 text-sm ${colorClass}`;
+            setTimeout(() => {
+                formMessage.textContent = '';
+                formMessage.className = 'mt-3 text-sm text-red-500';
+            }, 5000); // Message disappears after 5 seconds
+        }
 
         // --- KPI Calculation Functions ---
 
@@ -240,13 +383,11 @@
             const avgBurnRate = totalOpex / metricsData.length;
 
             // 3. Runway (Predictive BI) - CORRECTED LOGIC
-            // Use MRR - OPEX for the latest net cash flow (burn)
             let runway = 0;
             const latestNetCashFlow = latest.mrr - latest.opex;
 
             if (latestNetCashFlow < 0) {
                 // Burning cash (Net Burn Rate)
-                // The negative sign is already handled by dividing by -latestNetCashFlow
                 const netBurnRate = -latestNetCashFlow;
                 runway = Math.max(0, latest.cash / netBurnRate);
             } else if (latestNetCashFlow >= 0) {
@@ -416,7 +557,7 @@
         window.editEntry = (id) => {
             const entry = metricsData.find(e => e.id === id);
             if (!entry) {
-                console.error("Entry not found for editing:", id);
+                alertMessage("Error: Entry not found for editing.", 'text-red-500');
                 return;
             }
 
@@ -434,9 +575,7 @@
             submitButton.classList.remove('bg-blue-600', 'hover:bg-blue-700');
             submitButton.classList.add('bg-orange-500', 'hover:bg-orange-600');
             formTitle.textContent = 'Edit Monthly Entry (ID: ' + id.substring(0, 8) + '...)';
-            formMessage.textContent = 'Editing existing entry. Click "Update Data" to save changes.';
-            formMessage.classList.remove('text-red-500');
-            formMessage.classList.add('text-orange-500');
+            alertMessage('Editing existing entry. Click "Update Data" to save changes.', 'text-orange-500');
 
             // Scroll to the form for better UX
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -471,6 +610,7 @@
 
             saveData();
             renderDashboard();
+            alertMessage("Entry deleted successfully.", 'text-gray-500');
         };
 
         // --- Event Handlers ---
@@ -490,7 +630,7 @@
             for (const [key, value] of formData.entries()) {
                 if (key === 'month') {
                     if (!value.trim()) {
-                        formMessage.textContent = 'Month/Period is required.';
+                        alertMessage('Month/Period is required.');
                         isValid = false;
                         break;
                     }
@@ -498,7 +638,7 @@
                 } else {
                     const numValue = parseFloat(value);
                     if (isNaN(numValue) || value.trim() === '') {
-                        formMessage.textContent = `${key.replace('_', ' ')} must be a valid number.`;
+                        alertMessage(`${key.replace('_', ' ')} must be a valid number.`);
                         isValid = false;
                         break;
                     }
@@ -509,21 +649,28 @@
             if (!isValid) return;
 
             const entryId = editingIdInput.value;
+            let successMessage = "Data added successfully!";
 
             if (entryId) {
                 // 2. UPDATE existing entry
                 const index = metricsData.findIndex(e => e.id === entryId);
                 if (index !== -1) {
-                    metricsData[index] = { ...metricsData[index], ...entryData };
+                    // Update entry while preserving its ID
+                    metricsData[index] = { id: entryId, ...entryData }; 
+                    successMessage = "Data updated successfully!";
                 } else {
-                    console.error("Attempted to update non-existent ID:", entryId);
                     // Fall through to ADD if update fails unexpectedly
-                    entryData.id = crypto.randomUUID();
+                    entryData.id = generateUUID();
                     metricsData.push(entryData);
                 }
             } else {
                 // 3. ADD new entry
-                entryData.id = crypto.randomUUID();
+                // Check for duplicate month
+                if (metricsData.some(e => e.month === entryData.month)) {
+                    alertMessage(`Error: An entry for ${entryData.month} already exists. Please edit the existing entry or change the month.`, 'text-red-500');
+                    return;
+                }
+                entryData.id = generateUUID();
                 metricsData.push(entryData);
             }
 
@@ -531,6 +678,7 @@
             metricsData.sort((a, b) => a.month.localeCompare(b.month)); // Re-sort by month
             saveData();
             renderDashboard();
+            alertMessage(successMessage, 'text-green-600');
         });
 
         // --- Initialization ---
