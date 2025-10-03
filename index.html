@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Startup Metrics Dashboard</title>
-    <!-- Load Tailwind CSS for professional, responsive styling -->
+    <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Custom styles for professional look and feel */
@@ -14,679 +14,589 @@
             --color-warning: #f59e0b; /* Amber 500 */
             --color-danger: #ef4444; /* Red 500 */
         }
+
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f3f4f6; /* Light gray background */
         }
+
         .metric-card {
-            /* Clean shadow and subtle hover effect for professional feel */
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
             transition: transform 0.2s;
             cursor: default;
         }
+
         .metric-card:hover {
             transform: translateY(-2px);
         }
-        /* Custom color classes for visual health indicators */
-        .indicator-green { border-top-color: var(--color-success); }
-        .indicator-red { border-top-color: var(--color-danger); }
-        .indicator-yellow { border-top-color: var(--color-warning); }
-        /* Style for the historical data table */
-        #data-table th, #data-table td {
-            padding: 10px 16px;
-            text-align: left;
-            border-bottom: 1px solid #e5e7eb;
+
+        .input-field {
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid #d1d5db;
+            transition: border-color 0.15s, box-shadow 0.15s;
         }
-        #data-table th {
-            background-color: #f9fafb;
-            font-weight: 600;
-            color: #4b5563;
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
         }
-        /* Hide scrollbar on the historical data section for a cleaner UI */
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Responsive Table adjustments */
+        @media (max-width: 768px) {
+            .historical-table thead {
+                display: none;
+            }
+            .historical-table, .historical-table tbody, .historical-table tr, .historical-table td {
+                display: block;
+                width: 100%;
+            }
+            .historical-table tr {
+                margin-bottom: 1rem;
+                border: 1px solid #e5e7eb;
+                border-radius: 0.5rem;
+            }
+            .historical-table td {
+                text-align: right;
+                padding-left: 50%;
+                position: relative;
+            }
+            .historical-table td::before {
+                content: attr(data-label);
+                position: absolute;
+                left: 10px;
+                width: calc(50% - 20px);
+                padding-right: 10px;
+                white-space: nowrap;
+                text-align: left;
+                font-weight: 600;
+            }
+        }
     </style>
 </head>
 <body class="p-4 md:p-8">
 
-    <div class="max-w-7xl mx-auto">
-        <h1 class="text-3xl font-extrabold text-gray-900 mb-6">Startup Metrics Dashboard</h1>
+    <div id="message-box" class="fixed top-0 inset-x-0 z-50 p-4 transition-all duration-300 transform -translate-y-full"></div>
 
-        <!-- SECTION: Calculated KPIs (Descriptive & Predictive) -->
-        <!-- Responsive grid for KPIs: 1 column on mobile, 2 on tablet, 4 on desktop -->
-        <div id="kpi-display" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-            <!-- KPIs will be dynamically inserted here -->
-        </div>
+    <header class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-800">Startup Metrics Dashboard</h1>
+        <p class="text-gray-500">Track key financial and customer performance metrics.</p>
+    </header>
 
-        <!-- SECTION: Data Entry Form -->
-        <div class="bg-white p-6 rounded-xl shadow-lg mb-10">
-            <h2 class="text-xl font-semibold text-gray-800 mb-4" id="form-title">Add Monthly Entry</h2>
-            <!-- Hidden input to store the ID of the entry currently being edited -->
-            <input type="hidden" id="editing-id">
+    <!-- Metrics Cards Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
 
-            <!-- Responsive form layout -->
-            <form id="data-form" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4 items-end">
-                <input type="text" id="month" placeholder="Month (e.g., 2025-05)" required class="col-span-2 md:col-span-1 p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150">
-                <input type="number" id="mrr" placeholder="MRR ($)" required class="p-3 border border-gray-300 rounded-lg">
-                <input type="number" id="new_customers" placeholder="New Customers" required class="p-3 border border-gray-300 rounded-lg">
-                <input type="number" id="churn" placeholder="Customer Churn" required class="p-3 border border-gray-300 rounded-lg">
-                <input type="number" id="opex" placeholder="Operating Expenses ($)" required class="p-3 border border-gray-300 rounded-lg">
-                <input type="number" id="cash" placeholder="Cash Balance ($)" required class="p-3 border border-gray-300 rounded-lg">
-                <button type="submit" id="submit-button" class="col-span-2 md:col-span-1 lg:col-span-1 p-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition duration-150">Add Data</button>
-            </form>
-            <div id="form-message" class="mt-3 text-sm text-red-500"></div>
-        </div>
-
-        <!-- SECTION: Historical Data (Descriptive BI) -->
-        <div class="bg-white p-6 rounded-xl shadow-lg mb-6">
-            <h2 class="text-xl font-semibold text-gray-800 mb-4">Historical Performance</h2>
-            <div class="overflow-x-auto hide-scrollbar">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead>
-                        <tr>
-                            <th>Period</th>
-                            <th>MRR ($)</th>
-                            <th>New Cust.</th>
-                            <th>Churn</th>
-                            <th>Opex ($)</th>
-                            <th>Cash ($)</th>
-                            <th class="text-center">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="data-table" class="divide-y divide-gray-100">
-                        <!-- Data will be dynamically inserted here -->
-                    </tbody>
-                </table>
+        <!-- MRR Card -->
+        <div class="metric-card bg-white p-6 rounded-xl shadow-lg border border-gray-100">
+            <div class="flex justify-between items-start">
+                <h2 class="text-lg font-semibold text-gray-500">Latest MRR ($)</h2>
+                <span id="mrr-growth" class="text-sm font-medium text-green-600 bg-green-100 px-2 py-0.5 rounded-full"></span>
             </div>
-            <div id="no-data-message" class="text-center p-8 text-gray-500 hidden">No data entries yet. Start by adding an entry above!</div>
+            <p id="latest-mrr" class="text-3xl font-bold mt-2 text-gray-800">$0</p>
+            <p class="text-sm text-gray-400 mt-1">Monthly Recurring Revenue</p>
         </div>
 
-        <!-- SECTION: Data Backup & Management -->
-        <div class="bg-gray-100 p-4 rounded-xl shadow-inner flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0 sm:space-x-4">
-            <p class="text-sm text-gray-700">Manage your data backup and recovery using JSON files.</p>
-            <div class="flex space-x-2">
-                <!-- Export Button -->
-                <button onclick="exportData()" class="p-2 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-700 transition duration-150 text-sm flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                    Export Data
-                </button>
-                
-                <!-- Clear Data Button (New addition for troubleshooting) -->
-                <button onclick="clearLocalStorageAndReload()" class="p-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition duration-150 text-sm flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2 2m2-2l2-2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Clear Data
-                </button>
-
-                <!-- Import Button (Hidden File Input) -->
-                <input type="file" id="import-file" accept=".json" class="hidden" onchange="handleImport(event)">
-                <button onclick="document.getElementById('import-file').click()" class="p-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition duration-150 text-sm flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                    </svg>
-                    Import Data
-                </button>
+        <!-- Cash Card -->
+        <div class="metric-card bg-white p-6 rounded-xl shadow-lg border border-gray-100">
+            <div class="flex justify-between items-start">
+                <h2 class="text-lg font-semibold text-gray-500">Cash Balance</h2>
+                <p class="text-sm font-medium text-gray-400">Total Cash:</p>
             </div>
+            <p id="total-cash" class="text-3xl font-bold mt-2 text-gray-800">$0</p>
+            <p class="text-sm text-gray-400 mt-1">What is our current cash position?</p>
         </div>
 
+        <!-- Burn Rate Card -->
+        <div class="metric-card bg-white p-6 rounded-xl shadow-lg border border-gray-100">
+            <div class="flex justify-between items-start">
+                <h2 class="text-lg font-semibold text-gray-500">Monthly Burn Rate (Avg)</h2>
+                <p class="text-sm font-medium text-gray-400">Avg Monthly Spend</p>
+            </div>
+            <p id="burn-rate" class="text-3xl font-bold mt-2 text-gray-800">$0.00</p>
+            <p class="text-sm text-gray-400 mt-1">Why is cash changing? (Average costs)</p>
+        </div>
+
+        <!-- Runway Card -->
+        <div class="metric-card bg-white p-6 rounded-xl shadow-lg border border-gray-100">
+            <div class="flex justify-between items-start">
+                <h2 class="text-lg font-semibold text-gray-500">Runway (Months)</h2>
+                <span id="runway-growth" class="text-sm font-medium text-green-600 bg-green-100 px-2 py-0.5 rounded-full">Infinite</span>
+            </div>
+            <p id="runway" class="text-3xl font-bold mt-2 text-gray-800">0</p>
+            <p class="text-sm text-gray-400 mt-1">How long will cash last at current spending?</p>
+        </div>
 
     </div>
 
-    <script>
-        // --- Global Variables and Constants ---
-        const STORAGE_KEY = 'startupMetricsData';
-        const dataForm = document.getElementById('data-form');
-        const dataTable = document.getElementById('data-table');
-        const kpiDisplay = document.getElementById('kpi-display');
-        const formMessage = document.getElementById('form-message');
-        const noDataMessage = document.getElementById('no-data-message');
-        const submitButton = document.getElementById('submit-button');
-        const formTitle = document.getElementById('form-title');
-        const editingIdInput = document.getElementById('editing-id');
-        
-        // Form inputs for easy access
-        const inputMonth = document.getElementById('month');
-        const inputMrr = document.getElementById('mrr');
-        const inputNewCustomers = document.getElementById('new_customers');
-        const inputChurn = document.getElementById('churn');
-        const inputOpex = document.getElementById('opex');
-        const inputCash = document.getElementById('cash');
+    <!-- Data Entry Section -->
+    <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg mb-12 border border-gray-100">
+        <h2 class="text-xl font-bold text-gray-800 mb-4">Add Monthly Entry</h2>
+        <form id="data-entry-form" class="grid grid-cols-2 md:grid-cols-7 gap-4 items-end">
+            <input type="month" id="month" placeholder="Month (e.g., May 24)" required class="input-field col-span-2 md:col-span-1">
+            <input type="number" id="mrr" placeholder="MRR ($)" required class="input-field">
+            <input type="number" id="newCustomers" placeholder="New Cust." required class="input-field">
+            <input type="number" id="churn" placeholder="Customer Churn" required class="input-field">
+            <input type="number" id="opex" placeholder="Operating Expen. ($)" required class="input-field">
+            <input type="number" id="cash" placeholder="Cash Balance ($)" required class="input-field">
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-150 shadow-md hover:shadow-lg col-span-2 md:col-span-1">Add Data</button>
+        </form>
+        <p id="form-error" class="text-sm text-red-500 mt-2 hidden"></p>
+    </div>
 
-        let metricsData = [];
-        
-        // A simple function to create a UUID (Universally Unique Identifier)
-        const generateUUID = () => {
-            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-                const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
-                return v.toString(16);
-            });
-        };
+    <!-- Historical Performance Table -->
+    <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg mb-12 border border-gray-100">
+        <h2 class="text-xl font-bold text-gray-800 mb-4">Historical Performance (Descriptive)</h2>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left historical-table">
+                <thead>
+                    <tr class="bg-gray-50 text-gray-600 uppercase text-sm leading-normal">
+                        <th class="py-3 px-6 text-left">Period</th>
+                        <th class="py-3 px-6 text-right">MRR ($)</th>
+                        <th class="py-3 px-6 text-right">New Cust.</th>
+                        <th class="py-3 px-6 text-right">Churn</th>
+                        <th class="py-3 px-6 text-right">Opex ($)</th>
+                        <th class="py-3 px-6 text-right">Cash ($)</th>
+                        <th class="py-3 px-6 text-right">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="historical-data" class="text-gray-600 text-sm font-light">
+                    <!-- Data rows will be inserted here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
 
-
-        // --- Utility Functions: Data Storage and Persistence (REINFORCED) ---
-
-        /**
-         * Loads data from localStorage, or initializes with sample data if empty/corrupt.
-         */
-        const loadData = () => {
-            try {
-                const storedData = localStorage.getItem(STORAGE_KEY);
-                if (storedData) {
-                    const parsedData = JSON.parse(storedData);
-                    // Critical check: Ensure parsed data is an array before assigning
-                    metricsData = Array.isArray(parsedData) ? parsedData : [];
-                    
-                    if (metricsData.length > 0) {
-                        console.log(`[STORAGE] Data loaded successfully from localStorage: ${metricsData.length} entries.`);
-                    }
-                }
-            } catch (e) {
-                console.error("[STORAGE ERROR] Error loading or parsing data from localStorage. Data may be corrupt, removing it now. Check browser settings (Private Mode).", e);
-                // Clear potentially corrupt key
-                localStorage.removeItem(STORAGE_KEY);
-                metricsData = [];
-            }
-            
-            // If data is empty after loading/clearing, inject sample data
-            if (metricsData.length === 0) {
-                 metricsData = [
-                    { id: generateUUID(), month: "2024-06", mrr: 1500, new_customers: 20, churn: 2, opex: 8000, cash: 500000 },
-                    { id: generateUUID(), month: "2024-07", mrr: 3000, new_customers: 35, churn: 4, opex: 9500, cash: 490500 },
-                    { id: generateUUID(), month: "2024-08", mrr: 7500, new_customers: 70, churn: 8, opex: 10000, cash: 480500 },
-                    { id: generateUUID(), month: "2024-09", mrr: 12000, new_customers: 90, churn: 10, opex: 10500, cash: 470000 },
-                    { id: generateUUID(), month: "2024-10", mrr: 15500, new_customers: 60, churn: 15, opex: 12000, cash: 458000 },
-                    { id: generateUUID(), month: "2024-11", mrr: 20000, new_customers: 75, churn: 18, opex: 13500, cash: 444500 },
-                    { id: generateUUID(), month: "2024-12", mrr: 25000, new_customers: 80, churn: 20, opex: 14000, cash: 430500 },
-                ];
-                // Save the default data immediately, which will trigger the console log if it fails.
-                saveData();
-            }
-
-            // Always ensure data is sorted for calculations (by month string)
-            metricsData.sort((a, b) => a.month.localeCompare(b.month));
-        };
-
-        /**
-         * Saves the current metricsData array back to localStorage with safety check.
-         */
-        const saveData = () => {
-            try {
-                // Safety check 1: Ensure we are only saving if metricsData is an array
-                if (!Array.isArray(metricsData)) {
-                    console.error("[STORAGE FAILED] metricsData is not an array. Cannot save.");
-                    return;
-                }
-                
-                // Safety check 2: Try-catch block for JSON stringify and setItem
-                const dataString = JSON.stringify(metricsData);
-                localStorage.setItem(STORAGE_KEY, dataString);
-                console.log(`[STORAGE] Data successfully saved to localStorage. ${metricsData.length} entries.`);
-            } catch (e) {
-                console.error("[STORAGE CRITICAL] Error saving data. Your browser may be blocking storage access (e.g., Private Mode). Data is NOT persistent.", e);
-                alertMessage("CRITICAL: Data could not be saved to browser storage. Use the 'Export Data' button to prevent loss!", 'text-red-700');
-            }
-        };
-        
-        /**
-         * Clears all data from localStorage and reloads the page to inject sample data.
-         */
-        window.clearLocalStorageAndReload = () => {
-            // Replaces window.confirm
-            const modalMessage = "WARNING: This will permanently delete ALL saved data entries and reload the dashboard with sample data. Are you absolutely sure you want to continue?";
-            
-            // Simple in-page modal/confirmation replacement
-            if (window.confirm(modalMessage)) { // Using native confirm as a quick-fix proxy for the assignment
-                localStorage.removeItem(STORAGE_KEY);
-                metricsData = [];
-                // Clear the form state too
-                resetForm();
-                // Reload data to inject samples and re-render
-                loadData();
-                renderDashboard();
-                alertMessage("All local data cleared. Sample data reloaded.", 'text-red-600');
-            }
-        };
+    <!-- Data Management Section -->
+    <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg border border-gray-100">
+        <h2 class="text-xl font-bold text-gray-800 mb-4">Data Backup & Management</h2>
+        <div class="flex flex-wrap gap-4">
+            <button id="export-data" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-150 shadow-md hover:shadow-lg">
+                Export Data (JSON)
+            </button>
+            <input type="file" id="import-file" accept=".json" class="hidden">
+            <button id="import-data" class="bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-150 shadow-md hover:shadow-lg">
+                Import Data (JSON)
+            </button>
+            <button id="clear-data" class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-150 shadow-md hover:shadow-lg">
+                Clear All Data
+            </button>
+        </div>
+    </div>
 
 
-        // --- Utility Functions: Backup & Import ---
+<script>
+    // --- Global Variables and Constants ---
+    const STORAGE_KEY = 'startupMetricsData';
+    let appData = []; // Array to hold all metric entries
 
-        /**
-         * Exports the current data to a JSON file.
-         */
-        window.exportData = () => {
-            const dataString = JSON.stringify(metricsData, null, 2); // Pretty-printed JSON
-            const blob = new Blob([dataString], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
+    // --- Utility Functions ---
 
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `startup_metrics_backup_${new Date().toISOString().slice(0, 10)}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            alertMessage("Data exported successfully! Save the file.", 'text-blue-600');
-        };
+    /**
+     * Formats a number as a currency string.
+     * @param {number} value The number to format.
+     * @returns {string} The formatted currency string.
+     */
+    function formatCurrency(value) {
+        if (typeof value !== 'number' || isNaN(value)) return '$0';
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(value);
+    }
 
-        /**
-         * Handles importing data from a file uploaded by the user.
-         */
-        window.handleImport = (event) => {
-            const file = event.target.files[0];
-            if (!file) return;
+    /**
+     * Shows a temporary, styled message box.
+     * @param {string} message The message to display.
+     * @param {'success' | 'danger' | 'warning'} type The type of message (determines color).
+     */
+    function showMessage(message, type) {
+        const box = document.getElementById('message-box');
+        let bgColor = '';
+        let textColor = '';
 
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const importedData = JSON.parse(e.target.result);
-                    
-                    // Validate imported structure: must be an array, and entries must have basic props
-                    if (Array.isArray(importedData) && importedData.every(item => item.month && typeof item.mrr === 'number')) {
-                        
-                        // Overwrite current data and ensure all entries have a unique ID
-                        metricsData = importedData.map(entry => ({ 
-                            ...entry, 
-                            id: entry.id || generateUUID() 
-                        }));
-                        
-                        // Sort and save
-                        metricsData.sort((a, b) => a.month.localeCompare(b.month));
-                        saveData();
-                        renderDashboard();
-                        alertMessage('Data successfully imported and saved! ' + metricsData.length + ' entries loaded.', 'text-green-600');
-                    } else {
-                        alertMessage('Import failed: File format is incorrect. Please ensure it contains an array of metric objects.', 'text-red-600');
-                    }
-                } catch (err) {
-                    alertMessage('Import failed: Could not parse JSON file. ' + err.message, 'text-red-600');
-                }
-            };
-            reader.readAsText(file);
-            
-            // Clear file input so the same file can be uploaded again if needed
-            event.target.value = '';
-        };
-
-        // --- Utility Functions: Formatting and Visualization ---
-
-        /**
-         * Formats a number as currency (USD).
-         */
-        const formatCurrency = (num) => {
-            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(num);
-        };
-
-        /**
-         * Formats a number as a percentage.
-         */
-        const formatPercent = (num) => {
-            if (num === Infinity || num === -Infinity) return '∞%';
-            return new Intl.NumberFormat('en-US', { style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(num);
-        };
-
-        /**
-         * Determines the color class for health indicators (Runway).
-         */
-        const getHealthColor = (value, type) => {
-            // Runway: > 12 months is great, 6-12 is warning, < 6 is critical (Visual Indicator)
-            if (type === 'runway') {
-                if (value === Infinity) return 'indicator-green';
-                if (value >= 12) return 'indicator-green';
-                if (value >= 6) return 'indicator-yellow';
-                return 'indicator-red';
-            }
-            return 'border-blue-500'; // Default
-        };
-
-        /**
-         * Generates the arrow and trend color for growth metrics. (Trend Arrows)
-         */
-        const getTrendIndicator = (change) => {
-            if (change === Infinity) return { arrow: '▲', color: 'text-green-600' };
-            if (change > 0.001) return { arrow: '▲', color: 'text-green-600' };
-            if (change < -0.001) return { arrow: '▼', color: 'text-red-600' };
-            return { arrow: '→', color: 'text-gray-500' }; // Neutral
-        };
-        
-        /**
-         * Displays a temporary message in the form message area.
-         */
-        const alertMessage = (message, colorClass = 'text-red-500') => {
-            formMessage.textContent = message;
-            formMessage.className = `mt-3 text-sm ${colorClass}`;
-            setTimeout(() => {
-                formMessage.textContent = '';
-                formMessage.className = 'mt-3 text-sm text-red-500';
-            }, 5000); // Message disappears after 5 seconds
+        if (type === 'success') {
+            bgColor = 'bg-green-500';
+            textColor = 'text-white';
+        } else if (type === 'danger') {
+            bgColor = 'bg-red-500';
+            textColor = 'text-white';
+        } else if (type === 'warning') {
+            bgColor = 'bg-yellow-500';
+            textColor = 'text-gray-900';
         }
 
-        // --- KPI Calculation Functions ---
+        box.innerHTML = `<div class="max-w-md mx-auto p-4 rounded-lg shadow-xl font-semibold ${bgColor} ${textColor}">${message}</div>`;
+        box.classList.remove('-translate-y-full');
 
-        /**
-         * Calculates key metrics: Total Revenue, Burn Rate, Runway, and Growth Rates.
-         */
-        const calculateKPIs = () => {
-            if (metricsData.length === 0) {
-                return { latestMRR: 0, totalMRR: 0, avgBurnRate: 0, runway: 0, customerGrowth: 0, netRevenueGrowth: 0, latestCash: 0, latestOpex: 0 };
-            }
+        setTimeout(() => {
+            box.classList.add('-translate-y-full');
+        }, 3000);
+    }
 
-            const latest = metricsData[metricsData.length - 1];
+    // --- Data Persistence (Load/Save) ---
 
-            // 1. Total Revenue (sum of all MRR entries)
-            const totalMRR = metricsData.reduce((sum, entry) => sum + entry.mrr, 0);
+    /**
+     * Generates a simple UUID (v4-like) for new entries.
+     * @returns {string} A unique ID string.
+     */
+    function generateUUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
 
-            // 2. Average Monthly Burn Rate (Average OPEX)
-            const totalOpex = metricsData.reduce((sum, entry) => sum + entry.opex, 0);
-            const avgBurnRate = totalOpex / metricsData.length;
+    /**
+     * Saves the current appData array to localStorage.
+     */
+    function saveData() {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+            console.log(`[STORAGE] Data successfully saved to localStorage. ${appData.length} entries.`);
+        } catch (error) {
+            console.error('[STORAGE ERROR] Could not save data to localStorage:', error);
+            showMessage('Critical Error: Failed to save data. Please check console.', 'danger');
+        }
+    }
 
-            // 3. Runway (Predictive BI) - CORRECTED LOGIC
-            let runway = 0;
-            const latestNetCashFlow = latest.mrr - latest.opex;
+    /**
+     * Defines the sample data used when no local data is found.
+     * The `id` field is crucial for data manipulation.
+     */
+    function getSampleData() {
+        // Data is intentionally sorted descending by month for easy initial display
+        return [
+            { id: generateUUID(), month: '2024-12', mrr: 25000, newCustomers: 80, churn: 20, opex: 14000, cash: 430500 },
+            { id: generateUUID(), month: '2024-11', mrr: 20000, newCustomers: 75, churn: 18, opex: 13500, cash: 444500 },
+            { id: generateUUID(), month: '2024-10', mrr: 15500, newCustomers: 60, churn: 15, opex: 12000, cash: 458500 },
+            { id: generateUUID(), month: '2024-09', mrr: 12000, newCustomers: 90, churn: 10, opex: 10500, cash: 470500 },
+            { id: generateUUID(), month: '2024-08', mrr: 7500, newCustomers: 70, churn: 8, opex: 10000, cash: 480500 },
+            { id: generateUUID(), month: '2024-07', mrr: 3000, newCustomers: 35, churn: 4, opex: 9500, cash: 490500 },
+            { id: generateUUID(), month: '2024-06', mrr: 1500, newCustomers: 20, churn: 2, opex: 8000, cash: 500000 }
+        ];
+    }
 
-            if (latestNetCashFlow < 0) {
-                // Burning cash (Net Burn Rate)
-                const netBurnRate = -latestNetCashFlow;
-                runway = Math.max(0, latest.cash / netBurnRate);
-            } else if (latestNetCashFlow >= 0) {
-                // Cashflow positive or break-even
-                runway = Infinity;
-            }
+    /**
+     * Loads data from localStorage or initializes with sample data.
+     */
+    function loadData() {
+        console.log("--- VERSION CHECK V2.0.1: New Logging & Persistence Loaded ---"); // <-- THIS IS THE VERSION CHECK LINE
 
-            // 4. Net Revenue Growth (MRR change) and Customer Growth (New Cust. change)
-            let customerGrowth = 0;
-            let netRevenueGrowth = 0;
-
-            if (metricsData.length >= 2) {
-                const prev = metricsData[metricsData.length - 2];
-
-                // Net Revenue Growth (MRR Growth % change)
-                if (prev.mrr > 0) {
-                    netRevenueGrowth = (latest.mrr - prev.mrr) / prev.mrr;
-                } else if (latest.mrr > 0) {
-                    netRevenueGrowth = Infinity;
+        const storedData = localStorage.getItem(STORAGE_KEY);
+        if (storedData) {
+            try {
+                const parsedData = JSON.parse(storedData);
+                // Filter out any undefined or null entries that might cause the crash
+                appData = parsedData.filter(entry => entry && entry.month && entry.id); 
+                console.log(`[STORAGE] Loaded ${appData.length} entries from localStorage.`);
+                if (appData.length === 0) {
+                    // If parsing worked but resulted in 0 entries (e.g. all corrupt data was filtered)
+                    appData = getSampleData();
+                    saveData(); // Save the new sample data immediately
+                    showMessage('Corrupted data removed. Loaded fresh sample data.', 'warning');
                 }
-
-                // Customer Growth Rate (% change in new customers)
-                if (prev.new_customers > 0) {
-                    customerGrowth = (latest.new_customers - prev.new_customers) / prev.new_customers;
-                } else if (latest.new_customers > 0) {
-                    customerGrowth = Infinity;
-                }
+            } catch (error) {
+                // Critical failure, data is corrupted (not valid JSON)
+                console.error('[STORAGE ERROR] Corrupt data found. Using sample data.', error);
+                appData = getSampleData();
+                saveData(); // Overwrite corrupted data with clean sample data
+                showMessage('Critical Data Error: Corrupted data cleaned. Loaded sample data.', 'danger');
             }
+        } else {
+            // No stored data found, use sample data
+            console.log('[STORAGE] No data found. Loading sample data.');
+            appData = getSampleData();
+            saveData(); // Save sample data for the first time
+        }
 
-            return {
-                latestMRR: latest.mrr,
-                totalMRR,
-                avgBurnRate,
-                runway,
-                netRevenueGrowth,
-                customerGrowth,
-                latestCash: latest.cash,
-                latestOpex: latest.opex
-            };
-        };
-
-        // --- Rendering Functions ---
-
-        /**
-         * Renders the main KPI cards at the top of the dashboard.
-         */
-        const renderKPIs = () => {
-            if (metricsData.length === 0) {
-                kpiDisplay.innerHTML = '<div class="col-span-4 text-center p-8 text-gray-500">Add data to see key performance indicators.</div>';
-                return;
-            }
-
-            const kpis = calculateKPIs();
-            const { latestMRR, totalMRR, avgBurnRate, runway, netRevenueGrowth, customerGrowth, latestCash, latestOpex } = kpis;
-
-            const runwayColor = getHealthColor(runway, 'runway');
-            const revenueTrend = getTrendIndicator(netRevenueGrowth);
-            const customerTrend = getTrendIndicator(customerGrowth);
-            const latest = metricsData[metricsData.length - 1];
-            const latestNetCashFlow = latest.mrr - latest.opex;
+        // Sort data descending by month for metrics calculation and display
+        appData.sort((a, b) => b.month.localeCompare(a.month));
+        renderDashboard();
+    }
 
 
-            const kpiItems = [
-                {
-                    title: 'Latest Monthly Recurring Revenue',
-                    value: formatCurrency(latestMRR),
-                    subtitle: 'Descriptive: Current recurring sales (MRR)',
-                    indicator: `${revenueTrend.arrow} ${formatPercent(netRevenueGrowth)} (MoM Growth)`,
-                    indicatorClass: revenueTrend.color,
-                    colorClass: 'border-blue-500',
-                },
-                {
-                    title: 'Total Revenue (All-Time)',
-                    value: formatCurrency(totalMRR),
-                    subtitle: 'Descriptive: Cumulative sales since launch',
-                    indicator: `Latest Cash: ${formatCurrency(latestCash)}`,
-                    indicatorClass: 'text-gray-500',
-                    colorClass: 'border-blue-500',
-                },
-                {
-                    title: 'Average Monthly Burn Rate',
-                    value: formatCurrency(avgBurnRate),
-                    subtitle: 'Diagnostic: Avg Operating Expenses (Opex)',
-                    indicator: `Customer Growth: ${customerTrend.arrow} ${formatPercent(customerGrowth)}`,
-                    indicatorClass: customerTrend.color,
-                    colorClass: 'border-blue-500',
-                },
-                {
-                    title: 'Runway Projection (Months)',
-                    value: runway === Infinity ? 'Infinite' : `${Math.round(runway)} Months`,
-                    subtitle: 'Predictive: How long cash will last at current burn',
-                    indicator: runway === Infinity ? 'Cash Flow Positive!' : `Net Flow: ${formatCurrency(latestNetCashFlow)}`,
-                    indicatorClass: 'text-gray-500',
-                    colorClass: runwayColor,
-                },
+    // --- Core Logic: Calculations and Rendering ---
+
+    /**
+     * Calculates and renders all dashboard metrics.
+     */
+    function renderDashboard() {
+        // Sort data descending by month (latest first)
+        appData.sort((a, b) => b.month.localeCompare(a.month));
+
+        if (appData.length === 0) {
+            document.getElementById('latest-mrr').textContent = '$0';
+            document.getElementById('total-cash').textContent = '$0';
+            document.getElementById('burn-rate').textContent = '$0.00';
+            document.getElementById('runway').textContent = '0';
+            document.getElementById('mrr-growth').textContent = '0%';
+            document.getElementById('runway-growth').textContent = 'Infinite';
+            renderHistoricalTable(); // Still need to clear the table
+            return;
+        }
+
+        const latest = appData[0];
+        const previous = appData[1] || null;
+
+        // 1. MRR
+        document.getElementById('latest-mrr').textContent = formatCurrency(latest.mrr);
+        const mrrGrowth = previous ? (latest.mrr - previous.mrr) / previous.mrr * 100 : 0;
+        const mrrGrowthEl = document.getElementById('mrr-growth');
+        mrrGrowthEl.textContent = `${mrrGrowth.toFixed(1)}%`;
+        mrrGrowthEl.className = `text-sm font-medium px-2 py-0.5 rounded-full ${mrrGrowth >= 0 ? 'text-green-600 bg-green-100' : 'text-red-600 bg-red-100'}`;
+
+        // 2. Cash Balance
+        document.getElementById('total-cash').textContent = formatCurrency(latest.cash);
+
+        // 3. Monthly Burn Rate (Average of Opex over all months)
+        const totalOpex = appData.reduce((sum, entry) => sum + entry.opex, 0);
+        const avgBurnRate = totalOpex / appData.length;
+        document.getElementById('burn-rate').textContent = formatCurrency(avgBurnRate);
+
+        // 4. Runway
+        // Use the average cash change over the last two months for a more immediate trend.
+        const latestCashChange = previous ? latest.cash - previous.cash : 0;
+        const avgCashChange = appData.length >= 2
+            ? (latest.cash - appData[appData.length - 1].cash) / (appData.length - 1)
+            : latestCashChange;
+        
+        // Use the immediate cash change (Latest Cash - Latest Opex) as the primary burn/gain rate
+        const effectiveBurnRate = latest.opex - (latest.mrr - previous.mrr); // Simplified: Opex minus MRR change
+        const monthlyChange = latest.cash - (previous ? previous.cash : latest.cash); // Actual monthly change
+
+        let effectiveMonthlyCashChange = monthlyChange; // Use the actual cash change
+
+        let runwayMonths = 0;
+        let runwayText = 'Infinite';
+
+        if (effectiveMonthlyCashChange < 0) {
+            // Cash is decreasing (Burn)
+            runwayMonths = Math.abs(latest.cash / effectiveMonthlyCashChange);
+            runwayText = runwayMonths.toFixed(1);
+        } else if (effectiveMonthlyCashChange >= 0) {
+            // Cash is flat or increasing (Gain)
+            runwayText = 'Infinite';
+        }
+
+        document.getElementById('runway').textContent = runwayText;
+        document.getElementById('runway-growth').textContent = effectiveMonthlyCashChange >= 0 ? 'Cash Positive' : 'Burning Cash';
+        
+        const runwayGrowthEl = document.getElementById('runway-growth');
+        runwayGrowthEl.className = `text-sm font-medium px-2 py-0.5 rounded-full ${effectiveMonthlyCashChange >= 0 ? 'text-green-600 bg-green-100' : 'text-red-600 bg-red-100'}`;
+
+
+        renderHistoricalTable();
+    }
+
+
+    /**
+     * Renders the historical data table.
+     */
+    function renderHistoricalTable() {
+        const tableBody = document.getElementById('historical-data');
+        tableBody.innerHTML = ''; // Clear existing rows
+
+        appData.forEach((entry, index) => {
+            const row = tableBody.insertRow();
+            row.className = 'border-b border-gray-200 hover:bg-gray-100';
+
+            const monthLabel = entry.month; // e.g., "2024-12"
+
+            // Data structure: [Label, Value, Alignment, RawValue]
+            const cells = [
+                ['Period', monthLabel, 'left'],
+                ['MRR ($)', formatCurrency(entry.mrr), 'right'],
+                ['New Cust.', entry.newCustomers, 'right'],
+                ['Churn', entry.churn, 'right'],
+                ['Opex ($)', formatCurrency(entry.opex), 'right'],
+                ['Cash ($)', formatCurrency(entry.cash), 'right'],
             ];
 
-            kpiDisplay.innerHTML = kpiItems.map(item => `
-                <div class="metric-card bg-white p-6 rounded-xl border-t-4 ${item.colorClass}">
-                    <div class="flex justify-between items-start">
-                        <p class="text-sm font-medium text-gray-500">${item.title}</p>
-                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 ${item.indicatorClass}">${item.indicator}</span>
-                    </div>
-                    <p class="text-3xl font-extrabold text-gray-900 mt-1">${item.value}</p>
-                    <p class="text-xs text-gray-400 mt-2">${item.subtitle}</p>
-                </div>
-            `).join('');
-        };
-
-
-        /**
-         * Renders the historical data table (Descriptive BI).
-         */
-        const renderTable = () => {
-            dataTable.innerHTML = ''; // Clear existing rows
-            if (metricsData.length === 0) {
-                noDataMessage.classList.remove('hidden');
-                return;
-            }
-            noDataMessage.classList.add('hidden');
-
-            // Render in reverse chronological order (latest month first)
-            [...metricsData].reverse().forEach((entry) => {
-                const row = document.createElement('tr');
-                row.className = 'hover:bg-gray-50 transition duration-150';
-                row.innerHTML = `
-                    <td class="whitespace-nowrap">${entry.month}</td>
-                    <td class="whitespace-nowrap">${formatCurrency(entry.mrr)}</td>
-                    <td class="whitespace-nowrap">${entry.new_customers}</td>
-                    <td class="whitespace-nowrap text-red-600 font-medium">${entry.churn}</td>
-                    <td class="whitespace-nowrap">${formatCurrency(entry.opex)}</td>
-                    <td class="whitespace-nowrap">${formatCurrency(entry.cash)}</td>
-                    <td class="whitespace-nowrap flex space-x-2 justify-center">
-                        <!-- Edit Button -->
-                        <button onclick="editEntry('${entry.id}')" class="text-blue-500 hover:text-blue-700 font-medium transition duration-150 p-1 rounded-lg">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                              <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.586a2 2 0 012.828 0L20 7.586l-2.828 2.828-2.829-2.828 2.828-2.828z" />
-                            </svg>
-                        </button>
-                        <!-- Delete Button -->
-                        <button onclick="deleteEntry('${entry.id}')" class="text-red-500 hover:text-red-700 font-medium transition duration-150 p-1 rounded-lg">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                              <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                        </button>
-                    </td>
-                `;
-                dataTable.appendChild(row);
+            cells.forEach(([label, value, align]) => {
+                const cell = row.insertCell();
+                cell.className = `py-3 px-6 text-${align}`;
+                cell.setAttribute('data-label', label); // For mobile view
+                cell.textContent = value;
             });
-        };
 
-        /**
-         * Renders the entire dashboard.
-         */
-        const renderDashboard = () => {
-            renderKPIs();
-            renderTable();
-            // Reset form UI after any dashboard update
-            resetForm();
-        };
-
-        // --- CRUD Operations ---
-
-        /**
-         * Loads an existing entry into the form for editing.
-         */
-        window.editEntry = (id) => {
-            const entry = metricsData.find(e => e.id === id);
-            if (!entry) {
-                alertMessage("Error: Entry not found for editing.", 'text-red-500');
-                return;
-            }
-
-            // Set form values
-            inputMonth.value = entry.month;
-            inputMrr.value = entry.mrr;
-            inputNewCustomers.value = entry.new_customers;
-            inputChurn.value = entry.churn;
-            inputOpex.value = entry.opex;
-            inputCash.value = entry.cash;
-            
-            // Set state for editing mode
-            editingIdInput.value = id;
-            submitButton.textContent = 'Update Data';
-            submitButton.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-            submitButton.classList.add('bg-orange-500', 'hover:bg-orange-600');
-            formTitle.textContent = 'Edit Monthly Entry (ID: ' + id.substring(0, 8) + '...)';
-            alertMessage('Editing existing entry. Click "Update Data" to save changes.', 'text-orange-500');
-
-            // Scroll to the form for better UX
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        };
-        
-        /**
-         * Resets the form back to 'Add' mode.
-         */
-        const resetForm = () => {
-            editingIdInput.value = '';
-            dataForm.reset();
-            submitButton.textContent = 'Add Data';
-            submitButton.classList.remove('bg-orange-500', 'hover:bg-orange-600');
-            submitButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
-            formTitle.textContent = 'Add Monthly Entry';
-            formMessage.textContent = '';
-            formMessage.classList.remove('text-orange-500');
-        };
-
-
-        /**
-         * Deletes a data entry by ID and re-renders the dashboard.
-         */
-        window.deleteEntry = (id) => {
-            // Filter out the entry to delete
-            metricsData = metricsData.filter(entry => entry.id !== id);
-            
-            // If the deleted entry was the one being edited, reset the form
-            if (editingIdInput.value === id) {
-                resetForm();
-            }
-
-            saveData();
-            renderDashboard();
-            alertMessage("Entry deleted successfully.", 'text-gray-500');
-        };
-
-        // --- Event Handlers ---
-
-        /**
-         * Handles the submission of the data entry form (either Add or Update).
-         */
-        dataForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            formMessage.textContent = '';
-
-            const formData = new FormData(dataForm);
-            const entryData = {};
-            let isValid = true;
-
-            // 1. Validate and parse data
-            for (const [key, value] of formData.entries()) {
-                if (key === 'month') {
-                    if (!value.trim()) {
-                        alertMessage('Month/Period is required.');
-                        isValid = false;
-                        break;
-                    }
-                    entryData[key] = value.trim();
-                } else {
-                    const numValue = parseFloat(value);
-                    if (isNaN(numValue) || value.trim() === '') {
-                        alertMessage(`${key.replace('_', ' ')} must be a valid number.`);
-                        isValid = false;
-                        break;
-                    }
-                    entryData[key] = numValue;
-                }
-            }
-
-            if (!isValid) return;
-
-            const entryId = editingIdInput.value;
-            let successMessage = "Data added successfully!";
-
-            if (entryId) {
-                // 2. UPDATE existing entry
-                const index = metricsData.findIndex(e => e.id === entryId);
-                if (index !== -1) {
-                    // Update entry while preserving its ID
-                    metricsData[index] = { id: entryId, ...entryData }; 
-                    successMessage = "Data updated successfully!";
-                } else {
-                    // Fall through to ADD if update fails unexpectedly
-                    entryData.id = generateUUID();
-                    metricsData.push(entryData);
-                }
-            } else {
-                // 3. ADD new entry
-                // Check for duplicate month
-                if (metricsData.some(e => e.month === entryData.month)) {
-                    alertMessage(`Error: An entry for ${entryData.month} already exists. Please edit the existing entry or change the month.`, 'text-red-500');
-                    return;
-                }
-                entryData.id = generateUUID();
-                metricsData.push(entryData);
-            }
-
-            // 4. Re-sort and Save
-            metricsData.sort((a, b) => a.month.localeCompare(b.month)); // Re-sort by month
-            saveData();
-            renderDashboard();
-            alertMessage(successMessage, 'text-green-600');
+            // Action Cell (Delete button)
+            const actionCell = row.insertCell();
+            actionCell.className = 'py-3 px-6 text-right';
+            actionCell.setAttribute('data-label', 'Action');
+            actionCell.innerHTML = `<button class="text-red-500 hover:text-red-700 transition duration-150 delete-btn" data-id="${entry.id}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                    </button>`;
         });
 
-        // --- Initialization ---
-        window.onload = () => {
-            loadData();
-            renderDashboard();
+        // Attach event listeners for delete buttons
+        document.querySelectorAll('.delete-btn').forEach(button => {
+            button.addEventListener('click', handleDeleteEntry);
+        });
+    }
+
+
+    // --- Event Handlers ---
+
+    /**
+     * Handles adding or updating a metric entry.
+     */
+    function handleFormSubmit(event) {
+        event.preventDefault();
+
+        const formErrorEl = document.getElementById('form-error');
+        formErrorEl.classList.add('hidden');
+        formErrorEl.textContent = '';
+
+        const monthInput = document.getElementById('month').value;
+        const newEntry = {
+            id: generateUUID(),
+            month: monthInput,
+            mrr: parseInt(document.getElementById('mrr').value),
+            newCustomers: parseInt(document.getElementById('newCustomers').value),
+            churn: parseInt(document.getElementById('churn').value),
+            opex: parseInt(document.getElementById('opex').value),
+            cash: parseInt(document.getElementById('cash').value)
         };
 
-    </script>
+        // Check for existing entry (prevents duplicate months)
+        const existingIndex = appData.findIndex(entry => entry.month === newEntry.month);
+
+        if (existingIndex !== -1) {
+            // Case 1: Entry exists (update it)
+            const confirmation = window.confirm(`An entry for ${newEntry.month} already exists. Do you want to overwrite it?`);
+            if (confirmation) {
+                newEntry.id = appData[existingIndex].id; // Preserve original ID
+                appData[existingIndex] = newEntry;
+                showMessage(`Entry for ${newEntry.month} successfully updated.`, 'success');
+            } else {
+                return; // Stop the process
+            }
+        } else {
+            // Case 2: New entry (add it)
+            appData.push(newEntry);
+            showMessage(`New entry for ${newEntry.month} added successfully.`, 'success');
+        }
+
+        saveData();
+        renderDashboard();
+        event.target.reset(); // Clear the form
+    }
+
+    /**
+     * Handles the deletion of a metric entry.
+     */
+    function handleDeleteEntry(event) {
+        const idToDelete = event.currentTarget.getAttribute('data-id');
+
+        const confirmation = window.confirm('Are you sure you want to delete this historical entry?');
+        if (!confirmation) {
+            return;
+        }
+
+        const initialLength = appData.length;
+        appData = appData.filter(entry => entry.id !== idToDelete);
+
+        if (appData.length < initialLength) {
+            saveData();
+            renderDashboard();
+            showMessage('Entry successfully deleted.', 'warning');
+        } else {
+            showMessage('Error: Could not find entry to delete.', 'danger');
+        }
+    }
+
+
+    // --- Data Management Handlers ---
+
+    /**
+     * Handles the export of data to a JSON file.
+     */
+    function handleExportData() {
+        const dataStr = JSON.stringify(appData, null, 2);
+        const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+        
+        const exportFileDefaultName = 'startup_metrics_backup.json';
+
+        const linkElement = document.createElement('a');
+        linkElement.setAttribute('href', dataUri);
+        linkElement.setAttribute('download', exportFileDefaultName);
+        linkElement.click();
+
+        showMessage('Data exported successfully!', 'success');
+    }
+
+    /**
+     * Handles clearing all data and reloading sample data.
+     */
+    function handleClearData() {
+        const confirmation = window.confirm('WARNING: This will permanently delete ALL historical data and load sample data. Are you absolutely sure?');
+        if (confirmation) {
+            localStorage.removeItem(STORAGE_KEY);
+            appData = getSampleData(); // Load sample data directly
+            saveData(); // Save the clean sample data
+            renderDashboard();
+            showMessage('All data cleared. Sample data reloaded.', 'danger');
+        }
+    }
+
+    /**
+     * Handles importing data from a JSON file.
+     */
+    function handleImportData() {
+        document.getElementById('import-file').click();
+    }
+
+    /**
+     * Processes the imported JSON file.
+     */
+    function handleImportFile(event) {
+        const file = event.target.files[0];
+        if (!file) {
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const importedData = JSON.parse(e.target.result);
+                // Basic validation: must be an array, and entries must have month/id
+                if (Array.isArray(importedData) && importedData.every(item => item && item.month && item.id)) {
+                    appData = importedData;
+                    saveData();
+                    renderDashboard();
+                    showMessage(`Successfully imported ${appData.length} entries.`, 'success');
+                } else {
+                    showMessage('Import failed. File content is not a valid data format.', 'danger');
+                }
+            } catch (error) {
+                console.error('Import error:', error);
+                showMessage('Import failed. Invalid JSON file format.', 'danger');
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    // --- Initialization ---
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // Attach main event listener
+        document.getElementById('data-entry-form').addEventListener('submit', handleFormSubmit);
+
+        // Attach data management listeners
+        document.getElementById('export-data').addEventListener('click', handleExportData);
+        document.getElementById('import-data').addEventListener('click', handleImportData);
+        document.getElementById('clear-data').addEventListener('click', handleClearData);
+        document.getElementById('import-file').addEventListener('change', handleImportFile);
+
+        // Initial data load and rendering
+        loadData();
+    });
+
+</script>
 </body>
 </html>
