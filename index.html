@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Startup Metrics Dashboard</title>
-    <!-- Load Tailwind CSS -->
+    <!-- Load Tailwind CSS for professional, responsive styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Custom styles for professional look and feel */
@@ -19,6 +19,7 @@
             background-color: #f3f4f6; /* Light gray background */
         }
         .metric-card {
+            /* Clean shadow and subtle hover effect for professional feel */
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
             transition: transform 0.2s;
             cursor: default;
@@ -26,10 +27,10 @@
         .metric-card:hover {
             transform: translateY(-2px);
         }
-        /* Custom color for visual health indicators */
-        .indicator-green { background-color: var(--color-success); }
-        .indicator-red { background-color: var(--color-danger); }
-        .indicator-yellow { background-color: var(--color-warning); }
+        /* Custom color classes for visual health indicators */
+        .indicator-green { border-top-color: var(--color-success); }
+        .indicator-red { border-top-color: var(--color-danger); }
+        .indicator-yellow { border-top-color: var(--color-warning); }
         /* Style for the historical data table */
         #data-table th, #data-table td {
             padding: 10px 16px;
@@ -41,14 +42,9 @@
             font-weight: 600;
             color: #4b5563;
         }
-        /* Hide scrollbar for clean look */
-        .hide-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .hide-scrollbar {
-            -ms-overflow-style: none;  /* IE and Edge */
-            scrollbar-width: none;  /* Firefox */
-        }
+        /* Hide scrollbar on the historical data section for a cleaner UI */
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="p-4 md:p-8">
@@ -56,29 +52,34 @@
     <div class="max-w-7xl mx-auto">
         <h1 class="text-3xl font-extrabold text-gray-900 mb-6">Startup Metrics Dashboard</h1>
 
-        <!-- SECTION: Calculated KPIs (BI Descriptive & Predictive) -->
+        <!-- SECTION: Calculated KPIs (Descriptive & Predictive) -->
+        <!-- Responsive grid for KPIs: 1 column on mobile, 2 on tablet, 4 on desktop -->
         <div id="kpi-display" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
             <!-- KPIs will be dynamically inserted here -->
         </div>
 
         <!-- SECTION: Data Entry Form -->
         <div class="bg-white p-6 rounded-xl shadow-lg mb-10">
-            <h2 class="text-xl font-semibold text-gray-800 mb-4">Add Monthly Entry</h2>
+            <h2 class="text-xl font-semibold text-gray-800 mb-4" id="form-title">Add Monthly Entry</h2>
+            <!-- Hidden input to store the ID of the entry currently being edited -->
+            <input type="hidden" id="editing-id">
+
+            <!-- Responsive form layout -->
             <form id="data-form" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4 items-end">
-                <input type="text" id="month" placeholder="Month (e.g., May 2025)" required class="col-span-2 md:col-span-1 p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150">
+                <input type="text" id="month" placeholder="Month (e.g., 2025-05)" required class="col-span-2 md:col-span-1 p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150">
                 <input type="number" id="mrr" placeholder="MRR ($)" required class="p-3 border border-gray-300 rounded-lg">
                 <input type="number" id="new_customers" placeholder="New Customers" required class="p-3 border border-gray-300 rounded-lg">
                 <input type="number" id="churn" placeholder="Customer Churn" required class="p-3 border border-gray-300 rounded-lg">
                 <input type="number" id="opex" placeholder="Operating Expenses ($)" required class="p-3 border border-gray-300 rounded-lg">
                 <input type="number" id="cash" placeholder="Cash Balance ($)" required class="p-3 border border-gray-300 rounded-lg">
-                <button type="submit" class="col-span-2 md:col-span-1 lg:col-span-1 p-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition duration-150">Add Data</button>
+                <button type="submit" id="submit-button" class="col-span-2 md:col-span-1 lg:col-span-1 p-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition duration-150">Add Data</button>
             </form>
             <div id="form-message" class="mt-3 text-sm text-red-500"></div>
         </div>
 
-        <!-- SECTION: Historical Data (BI Descriptive) -->
+        <!-- SECTION: Historical Data (Descriptive BI) -->
         <div class="bg-white p-6 rounded-xl shadow-lg">
-            <h2 class="text-xl font-semibold text-gray-800 mb-4">Historical Performance (Descriptive)</h2>
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Historical Performance</h2>
             <div class="overflow-x-auto hide-scrollbar">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead>
@@ -89,7 +90,7 @@
                             <th>Churn</th>
                             <th>Opex ($)</th>
                             <th>Cash ($)</th>
-                            <th>Action</th>
+                            <th class="text-center">Action</th>
                         </tr>
                     </thead>
                     <tbody id="data-table" class="divide-y divide-gray-100">
@@ -109,10 +110,21 @@
         const kpiDisplay = document.getElementById('kpi-display');
         const formMessage = document.getElementById('form-message');
         const noDataMessage = document.getElementById('no-data-message');
+        const submitButton = document.getElementById('submit-button');
+        const formTitle = document.getElementById('form-title');
+        const editingIdInput = document.getElementById('editing-id');
+        
+        // Form inputs for easy access
+        const inputMonth = document.getElementById('month');
+        const inputMrr = document.getElementById('mrr');
+        const inputNewCustomers = document.getElementById('new_customers');
+        const inputChurn = document.getElementById('churn');
+        const inputOpex = document.getElementById('opex');
+        const inputCash = document.getElementById('cash');
 
         let metricsData = [];
 
-        // --- Utility Functions ---
+        // --- Utility Functions: Data Storage and Persistence ---
 
         /**
          * Loads data from localStorage, or initializes with sample data if empty.
@@ -121,47 +133,56 @@
             try {
                 const storedData = localStorage.getItem(STORAGE_KEY);
                 if (storedData) {
-                    metricsData = JSON.parse(storedData);
+                    // Critical: Try to parse the stored data. If it fails, we treat it as an empty set.
+                    const parsedData = JSON.parse(storedData);
+                    metricsData = Array.isArray(parsedData) ? parsedData : [];
+
                     // Ensure metricsData is sorted by month/period for accurate trend calculations
-                    // Simple string sort is sufficient for 'Month YYYY' format
                     metricsData.sort((a, b) => a.month.localeCompare(b.month));
-                } else {
-                    // Inject sample data as required by the prompt (6-8 entries showing trends)
-                    metricsData = [
-                        // Initial phase (low MRR, high burn)
+                }
+
+                // If no data loaded (or only corrupted data found), inject sample data
+                if (metricsData.length === 0) {
+                     metricsData = [
                         { id: crypto.randomUUID(), month: "2024-06", mrr: 1500, new_customers: 20, churn: 2, opex: 8000, cash: 500000 },
                         { id: crypto.randomUUID(), month: "2024-07", mrr: 3000, new_customers: 35, churn: 4, opex: 9500, cash: 490500 },
-                        // Growth phase begins
                         { id: crypto.randomUUID(), month: "2024-08", mrr: 7500, new_customers: 70, churn: 8, opex: 10000, cash: 480500 },
                         { id: crypto.randomUUID(), month: "2024-09", mrr: 12000, new_customers: 90, churn: 10, opex: 10500, cash: 470000 },
-                        // Concerning pattern: High Churn and increasing Opex, cash declining faster
                         { id: crypto.randomUUID(), month: "2024-10", mrr: 15500, new_customers: 60, churn: 15, opex: 12000, cash: 458000 },
                         { id: crypto.randomUUID(), month: "2024-11", mrr: 20000, new_customers: 75, churn: 18, opex: 13500, cash: 444500 },
                         { id: crypto.randomUUID(), month: "2024-12", mrr: 25000, new_customers: 80, churn: 20, opex: 14000, cash: 430500 },
                     ];
+                    // IMPORTANT: Save the default data immediately to ensure storage works
                     saveData();
                 }
             } catch (e) {
-                console.error("Error loading data from localStorage:", e);
-                metricsData = [];
+                // If JSON.parse fails, it indicates corrupt storage, so we clear and load defaults.
+                console.error("Error loading data from localStorage, resetting data:", e);
+                localStorage.removeItem(STORAGE_KEY);
+                // Re-run loadData to ensure defaults are applied and saved cleanly
+                loadData();
             }
         };
 
         /**
-         * Saves the current metricsData array back to localStorage.
+         * Saves the current metricsData array back to localStorage with safety check.
          */
         const saveData = () => {
             try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(metricsData));
+                // Safety check: Ensure the object is a clean string before saving
+                const dataString = JSON.stringify(metricsData);
+                localStorage.setItem(STORAGE_KEY, dataString);
+                console.log("Data successfully saved to localStorage.");
             } catch (e) {
-                console.error("Error saving data to localStorage:", e);
+                console.error("CRITICAL: Error saving data to localStorage:", e);
+                // Inform the user or log a severe issue
             }
         };
 
+        // --- Utility Functions: Formatting and Visualization ---
+
         /**
          * Formats a number as currency (USD).
-         * @param {number} num - The number to format.
-         * @returns {string} Formatted currency string.
          */
         const formatCurrency = (num) => {
             return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(num);
@@ -169,109 +190,101 @@
 
         /**
          * Formats a number as a percentage.
-         * @param {number} num - The number to format (0.10 for 10%).
-         * @returns {string} Formatted percentage string.
          */
         const formatPercent = (num) => {
+            if (num === Infinity || num === -Infinity) return '∞%';
             return new Intl.NumberFormat('en-US', { style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(num);
         };
 
         /**
-         * Determines the color class for health indicators.
-         * @param {number} value - The metric value.
-         * @param {string} type - The metric type ('positive', 'negative', 'runway').
-         * @returns {string} Tailwind color class.
+         * Determines the color class for health indicators (Runway).
          */
         const getHealthColor = (value, type) => {
-            switch (type) {
-                case 'positive':
-                    return value > 0 ? 'indicator-green' : 'indicator-red';
-                case 'negative':
-                    return value < 0 ? 'indicator-green' : 'indicator-red';
-                case 'runway':
-                    // > 12 months is great, 6-12 is warning, < 6 is critical
-                    if (value >= 12) return 'indicator-green';
-                    if (value >= 6) return 'indicator-yellow';
-                    return 'indicator-red';
-                default:
-                    return 'bg-gray-200';
+            // Runway: > 12 months is great, 6-12 is warning, < 6 is critical (Visual Indicator)
+            if (type === 'runway') {
+                if (value === Infinity) return 'indicator-green';
+                if (value >= 12) return 'indicator-green';
+                if (value >= 6) return 'indicator-yellow';
+                return 'indicator-red';
             }
+            return 'border-blue-500'; // Default
         };
 
         /**
-         * Generates the arrow and trend color for growth metrics.
-         * @param {number} change - The percentage change (e.g., 0.1 for +10%).
-         * @returns {{arrow: string, color: string}} Arrow symbol and text color class.
+         * Generates the arrow and trend color for growth metrics. (Trend Arrows)
          */
         const getTrendIndicator = (change) => {
-            if (change > 0.05) return { arrow: '▲', color: 'text-green-600' };
-            if (change < -0.05) return { arrow: '▼', color: 'text-red-600' };
-            return { arrow: '→', color: 'text-yellow-600' };
+            if (change === Infinity) return { arrow: '▲', color: 'text-green-600' };
+            if (change > 0.001) return { arrow: '▲', color: 'text-green-600' };
+            if (change < -0.001) return { arrow: '▼', color: 'text-red-600' };
+            return { arrow: '→', color: 'text-gray-500' }; // Neutral
         };
 
         // --- KPI Calculation Functions ---
 
         /**
-         * Calculates key metrics for the KPI display.
+         * Calculates key metrics: Total Revenue, Burn Rate, Runway, and Growth Rates.
          */
         const calculateKPIs = () => {
             if (metricsData.length === 0) {
-                return {
-                    latestMRR: 0, avgBurnRate: 0, runway: 0, customerGrowth: 0, netRevenueGrowth: 0
-                };
+                return { latestMRR: 0, totalMRR: 0, avgBurnRate: 0, runway: 0, customerGrowth: 0, netRevenueGrowth: 0, latestCash: 0, latestOpex: 0 };
             }
 
-            // 1. Latest MRR and Cash
             const latest = metricsData[metricsData.length - 1];
-            const latestMRR = latest.mrr;
-            const latestCash = latest.cash;
 
-            // 2. Average Monthly Burn Rate (Average Operating Expenses)
+            // 1. Total Revenue (sum of all MRR entries)
+            const totalMRR = metricsData.reduce((sum, entry) => sum + entry.mrr, 0);
+
+            // 2. Average Monthly Burn Rate (Average OPEX)
             const totalOpex = metricsData.reduce((sum, entry) => sum + entry.opex, 0);
             const avgBurnRate = totalOpex / metricsData.length;
 
-            // 3. Runway (Predictive BI)
-            // Handle divide by zero / negative burn rate (if MRR > Opex)
+            // 3. Runway (Predictive BI) - CORRECTED LOGIC
+            // Use MRR - OPEX for the latest net cash flow (burn)
             let runway = 0;
             const latestNetCashFlow = latest.mrr - latest.opex;
 
             if (latestNetCashFlow < 0) {
-                // Burning cash
-                runway = Math.max(0, latestCash / (-latestNetCashFlow)); // Use latest month's net burn rate
+                // Burning cash (Net Burn Rate)
+                // The negative sign is already handled by dividing by -latestNetCashFlow
+                const netBurnRate = -latestNetCashFlow;
+                runway = Math.max(0, latest.cash / netBurnRate);
             } else if (latestNetCashFlow >= 0) {
-                // Cashflow positive or break-even, runway is effectively infinite
+                // Cashflow positive or break-even
                 runway = Infinity;
             }
 
-            // 4. Customer Growth Rate and Net Revenue Growth (Diagnostic/Trend BI)
-            let customerGrowth = 0; // % change in new customers (t) vs new customers (t-1)
-            let netRevenueGrowth = 0; // % change in MRR (t) vs MRR (t-1)
+            // 4. Net Revenue Growth (MRR change) and Customer Growth (New Cust. change)
+            let customerGrowth = 0;
+            let netRevenueGrowth = 0;
 
             if (metricsData.length >= 2) {
                 const prev = metricsData[metricsData.length - 2];
 
-                // Customer Growth
-                if (prev.new_customers > 0) {
-                    customerGrowth = (latest.new_customers - prev.new_customers) / prev.new_customers;
-                } else if (latest.new_customers > 0) {
-                    customerGrowth = Infinity; // Significant growth from zero base
-                }
-
-                // Net Revenue Growth (simplified to MRR Growth % change for visualization)
+                // Net Revenue Growth (MRR Growth % change)
                 if (prev.mrr > 0) {
                     netRevenueGrowth = (latest.mrr - prev.mrr) / prev.mrr;
                 } else if (latest.mrr > 0) {
-                    netRevenueGrowth = Infinity; // Significant growth from zero base
+                    netRevenueGrowth = Infinity;
+                }
+
+                // Customer Growth Rate (% change in new customers)
+                if (prev.new_customers > 0) {
+                    customerGrowth = (latest.new_customers - prev.new_customers) / prev.new_customers;
+                } else if (latest.new_customers > 0) {
+                    customerGrowth = Infinity;
                 }
             }
 
             return {
-                latestMRR,
+                latestMRR: latest.mrr,
+                totalMRR,
                 avgBurnRate,
                 runway,
-                customerGrowth,
                 netRevenueGrowth,
-                latestCash
+                customerGrowth,
+                latestCash: latest.cash,
+                latestOpex: latest.opex
             };
         };
 
@@ -281,68 +294,71 @@
          * Renders the main KPI cards at the top of the dashboard.
          */
         const renderKPIs = () => {
+            if (metricsData.length === 0) {
+                kpiDisplay.innerHTML = '<div class="col-span-4 text-center p-8 text-gray-500">Add data to see key performance indicators.</div>';
+                return;
+            }
+
             const kpis = calculateKPIs();
-            const { latestMRR, avgBurnRate, runway, customerGrowth, netRevenueGrowth, latestCash } = kpis;
+            const { latestMRR, totalMRR, avgBurnRate, runway, netRevenueGrowth, customerGrowth, latestCash, latestOpex } = kpis;
 
             const runwayColor = getHealthColor(runway, 'runway');
             const revenueTrend = getTrendIndicator(netRevenueGrowth);
             const customerTrend = getTrendIndicator(customerGrowth);
+            const latest = metricsData[metricsData.length - 1];
+            const latestNetCashFlow = latest.mrr - latest.opex;
+
 
             const kpiItems = [
                 {
-                    title: 'Latest Monthly Recurring Revenue (MRR)',
+                    title: 'Latest Monthly Recurring Revenue',
                     value: formatCurrency(latestMRR),
-                    subtitle: 'Total Monthly Sales',
-                    indicator: `${revenueTrend.arrow} ${formatPercent(netRevenueGrowth)}`,
+                    subtitle: 'Descriptive: Current recurring sales (MRR)',
+                    indicator: `${revenueTrend.arrow} ${formatPercent(netRevenueGrowth)} (MoM Growth)`,
                     indicatorClass: revenueTrend.color,
-                    description: 'Descriptive BI: What is our current revenue status?'
+                    colorClass: 'border-blue-500',
                 },
                 {
-                    title: 'Cash Balance',
-                    value: formatCurrency(latestCash),
-                    subtitle: 'Current Liquidity',
-                    indicator: `Total Cash: ${formatCurrency(latestCash)}`,
+                    title: 'Total Revenue (All-Time)',
+                    value: formatCurrency(totalMRR),
+                    subtitle: 'Descriptive: Cumulative sales since launch',
+                    indicator: `Latest Cash: ${formatCurrency(latestCash)}`,
                     indicatorClass: 'text-gray-500',
-                    description: 'Descriptive BI: What is our current cash position?'
+                    colorClass: 'border-blue-500',
                 },
                 {
-                    title: 'Monthly Burn Rate (Avg)',
+                    title: 'Average Monthly Burn Rate',
                     value: formatCurrency(avgBurnRate),
-                    subtitle: 'Average Operating Expense',
-                    indicator: 'Average Monthly Spend',
-                    indicatorClass: 'text-gray-500',
-                    description: 'Diagnostic BI: Why is cash changing? (Average costs)'
-                },
-                {
-                    title: 'Runway (Months)',
-                    value: runway === Infinity ? 'Infinite' : `${Math.round(runway)} Months`,
-                    subtitle: 'Cash ÷ Latest Net Burn Rate',
-                    colorClass: runwayColor,
-                    description: 'Predictive BI: How long will cash last at current spending?',
+                    subtitle: 'Diagnostic: Avg Operating Expenses (Opex)',
                     indicator: `Customer Growth: ${customerTrend.arrow} ${formatPercent(customerGrowth)}`,
                     indicatorClass: customerTrend.color,
+                    colorClass: 'border-blue-500',
+                },
+                {
+                    title: 'Runway Projection (Months)',
+                    value: runway === Infinity ? 'Infinite' : `${Math.round(runway)} Months`,
+                    subtitle: 'Predictive: How long cash will last at current burn',
+                    indicator: runway === Infinity ? 'Cash Flow Positive!' : `Net Flow: ${formatCurrency(latestNetCashFlow)}`,
+                    indicatorClass: 'text-gray-500',
+                    colorClass: runwayColor,
                 },
             ];
 
             kpiDisplay.innerHTML = kpiItems.map(item => `
-                <div class="metric-card bg-white p-6 rounded-xl border-t-4 ${item.colorClass || 'border-blue-500'}">
+                <div class="metric-card bg-white p-6 rounded-xl border-t-4 ${item.colorClass}">
                     <div class="flex justify-between items-start">
                         <p class="text-sm font-medium text-gray-500">${item.title}</p>
-                        <span class="px-2 py-1 text-xs font-semibold rounded-full ${item.indicatorClass}">${item.indicator}</span>
+                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 ${item.indicatorClass}">${item.indicator}</span>
                     </div>
                     <p class="text-3xl font-extrabold text-gray-900 mt-1">${item.value}</p>
-                    <p class="text-xs text-gray-400 mt-2">${item.description}</p>
+                    <p class="text-xs text-gray-400 mt-2">${item.subtitle}</p>
                 </div>
             `).join('');
-
-             if (metricsData.length === 0) {
-                kpiDisplay.innerHTML = '<div class="col-span-4 text-center p-8 text-gray-500">Add data to see key performance indicators.</div>';
-            }
         };
 
 
         /**
-         * Renders the historical data table.
+         * Renders the historical data table (Descriptive BI).
          */
         const renderTable = () => {
             dataTable.innerHTML = ''; // Clear existing rows
@@ -353,17 +369,24 @@
             noDataMessage.classList.add('hidden');
 
             // Render in reverse chronological order (latest month first)
-            [...metricsData].reverse().forEach((entry, index) => {
+            [...metricsData].reverse().forEach((entry) => {
                 const row = document.createElement('tr');
                 row.className = 'hover:bg-gray-50 transition duration-150';
                 row.innerHTML = `
-                    <td>${entry.month}</td>
-                    <td>${formatCurrency(entry.mrr)}</td>
-                    <td>${entry.new_customers}</td>
-                    <td>${entry.churn}</td>
-                    <td>${formatCurrency(entry.opex)}</td>
-                    <td>${formatCurrency(entry.cash)}</td>
-                    <td>
+                    <td class="whitespace-nowrap">${entry.month}</td>
+                    <td class="whitespace-nowrap">${formatCurrency(entry.mrr)}</td>
+                    <td class="whitespace-nowrap">${entry.new_customers}</td>
+                    <td class="whitespace-nowrap text-red-600 font-medium">${entry.churn}</td>
+                    <td class="whitespace-nowrap">${formatCurrency(entry.opex)}</td>
+                    <td class="whitespace-nowrap">${formatCurrency(entry.cash)}</td>
+                    <td class="whitespace-nowrap flex space-x-2 justify-center">
+                        <!-- Edit Button -->
+                        <button onclick="editEntry('${entry.id}')" class="text-blue-500 hover:text-blue-700 font-medium transition duration-150 p-1 rounded-lg">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.586a2 2 0 012.828 0L20 7.586l-2.828 2.828-2.829-2.828 2.828-2.828z" />
+                            </svg>
+                        </button>
+                        <!-- Delete Button -->
                         <button onclick="deleteEntry('${entry.id}')" class="text-red-500 hover:text-red-700 font-medium transition duration-150 p-1 rounded-lg">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                               <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -381,23 +404,89 @@
         const renderDashboard = () => {
             renderKPIs();
             renderTable();
+            // Reset form UI after any dashboard update
+            resetForm();
+        };
+
+        // --- CRUD Operations ---
+
+        /**
+         * Loads an existing entry into the form for editing.
+         */
+        window.editEntry = (id) => {
+            const entry = metricsData.find(e => e.id === id);
+            if (!entry) {
+                console.error("Entry not found for editing:", id);
+                return;
+            }
+
+            // Set form values
+            inputMonth.value = entry.month;
+            inputMrr.value = entry.mrr;
+            inputNewCustomers.value = entry.new_customers;
+            inputChurn.value = entry.churn;
+            inputOpex.value = entry.opex;
+            inputCash.value = entry.cash;
+            
+            // Set state for editing mode
+            editingIdInput.value = id;
+            submitButton.textContent = 'Update Data';
+            submitButton.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+            submitButton.classList.add('bg-orange-500', 'hover:bg-orange-600');
+            formTitle.textContent = 'Edit Monthly Entry (ID: ' + id.substring(0, 8) + '...)';
+            formMessage.textContent = 'Editing existing entry. Click "Update Data" to save changes.';
+            formMessage.classList.remove('text-red-500');
+            formMessage.classList.add('text-orange-500');
+
+            // Scroll to the form for better UX
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+        
+        /**
+         * Resets the form back to 'Add' mode.
+         */
+        const resetForm = () => {
+            editingIdInput.value = '';
+            dataForm.reset();
+            submitButton.textContent = 'Add Data';
+            submitButton.classList.remove('bg-orange-500', 'hover:bg-orange-600');
+            submitButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
+            formTitle.textContent = 'Add Monthly Entry';
+            formMessage.textContent = '';
+            formMessage.classList.remove('text-orange-500');
+        };
+
+
+        /**
+         * Deletes a data entry by ID and re-renders the dashboard.
+         */
+        window.deleteEntry = (id) => {
+            // Filter out the entry to delete
+            metricsData = metricsData.filter(entry => entry.id !== id);
+            
+            // If the deleted entry was the one being edited, reset the form
+            if (editingIdInput.value === id) {
+                resetForm();
+            }
+
+            saveData();
+            renderDashboard();
         };
 
         // --- Event Handlers ---
 
         /**
-         * Handles the submission of the new data entry form.
-         * @param {Event} e - The submit event.
+         * Handles the submission of the data entry form (either Add or Update).
          */
         dataForm.addEventListener('submit', (e) => {
             e.preventDefault();
             formMessage.textContent = '';
 
             const formData = new FormData(dataForm);
-            const entry = {};
+            const entryData = {};
             let isValid = true;
 
-            // Validate and parse data
+            // 1. Validate and parse data
             for (const [key, value] of formData.entries()) {
                 if (key === 'month') {
                     if (!value.trim()) {
@@ -405,7 +494,7 @@
                         isValid = false;
                         break;
                     }
-                    entry[key] = value.trim();
+                    entryData[key] = value.trim();
                 } else {
                     const numValue = parseFloat(value);
                     if (isNaN(numValue) || value.trim() === '') {
@@ -413,34 +502,36 @@
                         isValid = false;
                         break;
                     }
-                    entry[key] = numValue;
+                    entryData[key] = numValue;
                 }
             }
 
             if (!isValid) return;
 
-            // Add unique ID and push
-            entry.id = crypto.randomUUID();
-            metricsData.push(entry);
+            const entryId = editingIdInput.value;
 
-            // Re-sort data by period string (assuming YYYY-MM format in sample data for consistency)
-            metricsData.sort((a, b) => a.month.localeCompare(b.month));
+            if (entryId) {
+                // 2. UPDATE existing entry
+                const index = metricsData.findIndex(e => e.id === entryId);
+                if (index !== -1) {
+                    metricsData[index] = { ...metricsData[index], ...entryData };
+                } else {
+                    console.error("Attempted to update non-existent ID:", entryId);
+                    // Fall through to ADD if update fails unexpectedly
+                    entryData.id = crypto.randomUUID();
+                    metricsData.push(entryData);
+                }
+            } else {
+                // 3. ADD new entry
+                entryData.id = crypto.randomUUID();
+                metricsData.push(entryData);
+            }
 
+            // 4. Re-sort and Save
+            metricsData.sort((a, b) => a.month.localeCompare(b.month)); // Re-sort by month
             saveData();
-            dataForm.reset();
             renderDashboard();
         });
-
-        /**
-         * Deletes a data entry by ID.
-         * @param {string} id - The unique ID of the entry to delete.
-         */
-        window.deleteEntry = (id) => {
-            // Note: Since alert() is prohibited, we skip confirmation for simplicity
-            metricsData = metricsData.filter(entry => entry.id !== id);
-            saveData();
-            renderDashboard();
-        };
 
         // --- Initialization ---
         window.onload = () => {
